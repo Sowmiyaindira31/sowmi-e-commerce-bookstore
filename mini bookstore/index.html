@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Skar Bookstore</title>
+<style>
+:root{
+  --bg:#0f1724; --card:#081328; --accent:#783be1; --muted:#c2c6c1; --glass: rgba(255,255,255,0.03);
+  --success:#10b981; --danger:#ef4444;
+  --maxw:1200px; --radius:12px;
+  font-family: Inter, ui-sans-serif, system-ui;
+}
+*{box-sizing:border-box;}
+body{margin:0; background:linear-gradient(180deg,#071025 0%, #071727 100%); color:#e6eef8;}
+.container{max-width:var(--maxw); margin:0 auto; padding:20px;}
+header{background:var(--card);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
+.brand{font-size:20px;font-weight:600;}
+nav ul{list-style:none;display:flex;gap:18px;margin:0;padding:0;}
+nav a{color:#faf9f9;text-decoration:none;font-size:14px;}
+nav a:hover{color:var(--accent);}
+.search-bar{margin:16px 0;display:flex;gap:10px;}
+.search-bar input{flex:1;padding:10px;border-radius:8px;border:none;background:rgba(255,255,255,0.05);color:white;}
+.search-bar button{padding:10px 14px;border:none;border-radius:8px;background:var(--accent);color:white;cursor:pointer;}
+.layout{display:grid;grid-template-columns:1fr 360px; gap:20px;}
+@media(max-width:900px){.layout{grid-template-columns:1fr} .cart{order:2}}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:18px;}
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:var(--radius); padding:14px;}
+.cover{height:160px;border-radius:8px;background-size:cover;background-position:center;margin-bottom:12px;}
+.book-title{font-weight:600;margin:0 0 6px 0;}
+.author{font-size:13px;color:var(--muted);margin:0 0 8px;}
+.price-row{display:flex;justify-content:space-between;align-items:center;}
+button.add{background:var(--accent);border:none;padding:8px 12px;border-radius:8px;color:white;cursor:pointer;}
+.cart{background:var(--card); padding:14px;border-radius:var(--radius); height:fit-content;}
+.cart h3{margin:0 0 12px 0;}
+.cart-list{display:flex;flex-direction:column;gap:10px; max-height:420px; overflow:auto;padding-right:6px;}
+.cart-item{display:flex;gap:10px;align-items:center;}
+.thumb{width:58px;height:72px;background-size:cover;border-radius:6px;}
+.ci-meta{flex:1;}
+.ci-meta h4{margin:0;font-size:14px;}
+.qty{display:flex;gap:6px;align-items:center;margin-top:6px;}
+.qty button{width:28px;height:28px;border-radius:6px;border:none;background:var(--glass);color:var(--muted);cursor:pointer;}
+.remove{background:transparent;border:none;color:var(--danger);cursor:pointer;}
+.summary{border-top:1px dashed rgba(255,255,255,0.03);padding-top:12px;margin-top:12px;}
+.row{display:flex;justify-content:space-between;margin-bottom:8px;color:var(--muted);}
+.total{font-weight:700;font-size:18px;}
+.checkout{width:100%;padding:10px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--accent),#5b21b6);color:white;font-weight:600;cursor:pointer;}
+footer{margin-top:22px;text-align:center;color:var(--muted);font-size:13px;}
+/* Payment modal */
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background: rgba(0,0,0,0.8);justify-content:center;align-items:center;z-index:200;}
+.modal-content{background:#222;padding:30px 20px;border-radius:12px;width:350px;text-align:center;color:#f5f5f5;position:relative;}
+.modal-content h2{margin-bottom:20px;}
+.modal-content select,.modal-content button{width:100%;padding:12px;margin-top:10px;border-radius:8px;border:1px solid #444;font-size:16px;background:#1c1c1c;color:#f5f5f5;}
+.modal-content button{background:var(--accent); color:#fff; border:none; cursor:pointer;}
+.modal-content button:hover{background:#5a31b0;}
+.close{position:absolute;top:10px;right:15px;background:red;color:#fff;border:none;padding:5px 10px;border-radius:50%;font-weight:bold;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">SKAR Bookstore</div>
+  <nav>
+    <ul>
+      <li><a href="#" data-cat="all">All</a></li>
+      <li><a href="#" data-cat="romance">Romance</a></li>
+      <li><a href="#" data-cat="love">Love</a></li>
+      <li><a href="#" data-cat="sad">Sad</a></li>
+      <li><a href="#" data-cat="success">Success</a></li>
+      <li><a href="#" data-cat="pain">Pain</a></li>
+      <li><a href="#" data-cat="motivation">Motivation</a></li>
+    </ul>
+  </nav>
+  <button id="view-cart-btn" class="checkout">Cart (<span id="cart-count">0</span>)</button>
+</header>
+
+<div class="container">
+  <div class="search-bar">
+    <input type="text" id="search" placeholder="Search books by title or author...">
+    <button id="search-btn">Search</button>
+  </div>
+
+  <div class="layout">
+    <main>
+      <section class="card">
+        <h3 style="margin-top:0">Books</h3>
+        <div class="products" id="products"></div>
+      </section>
+    </main>
+
+    <aside class="cart card">
+      <h3>Cart</h3>
+      <div class="cart-list" id="cart-list">
+        <div style="color:var(--muted)">Your cart is empty — add some books!</div>
+      </div>
+      <div class="summary">
+        <div class="row"><span>Subtotal</span><span id="subtotal">₹0.00</span></div>
+        <div class="row"><span>Tax (5%)</span><span id="tax">₹0.00</span></div>
+        <div class="row"><span>Discount</span><span id="discount">-₹0.00</span></div>
+        <div class="row total"><span>Total</span><span id="total">₹0.00</span></div>
+        <div style="margin-top:10px">
+          <button id="checkout-btn" class="checkout" disabled>Checkout</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer> Terms & Privacy policy @Skar</footer>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal" id="paymentModal">
+  <div class="modal-content">
+   
+    <h2>Choose Payment Method</h2>
+    <select>
+      <option>💳 Credit Card</option>
+      <option>💵 Debit Card</option>
+      <option>📱 UPI</option>
+      <option>💰 Net Banking</option>
+      <option>🛒 Cash on Delivery</option>
+    </select>
+    <button onclick="confirmOrder()">Pay Now</button>
+  </div>
+</div>
+
+<script>
+const books = [
+  {id:'b1',title:'Romantic Nights',author:'Karthi',price:249,cat:'romance',cover:'https://images.unsplash.com/photo-1529655683826-aba9b3e77383?auto=format&fit=crop&w=800&q=60'},
+  {id:'b2',title:'Endless Love',author:'Das',price:399,cat:'love',cover:'https://images.unsplash.com/photo-1524578271613-7b4f5f5a6d2b?auto=format&fit=crop&w=800&q=60'},
+  {id:'b3',title:'Tears of Life',author:'Iyer',price:299,cat:'sad',cover:'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=60'},
+  {id:'b4',title:'Steps to Success',author:'Kiya',price:349,cat:'success',cover:'https://images.unsplash.com/photo-1496104679561-38d8a3c4d3f3?auto=format&fit=crop&w=800&q=60'},
+  {id:'b5',title:'Power of Pain',author:'Mia',price:279,cat:'pain',cover:'https://images.unsplash.com/photo-1553729784-e91953dec042?auto=format&fit=crop&w=800&q=60'},
+  {id:'b6',title:'Motivation Daily',author:'Sanem Bose',price:319,cat:'motivation',cover:'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=800&q=60'}
+];
+
+let cart = {};
+let activeCategory = 'all';
+const fmt = n => '₹' + n.toFixed(2);
+
+const calc = () => {
+  const items = Object.values(cart);
+  const subtotal = items.reduce((s,i)=>s + i.price*i.qty, 0);
+  const tax = +(subtotal * 0.05);
+  const discount = subtotal >= 1000 ? +(subtotal * 0.05) : 0;
+  const total = +(subtotal + tax - discount);
+  return {subtotal,tax,discount,total};
+}
+
+const productsEl = document.getElementById('products');
+function renderProducts(list){
+  productsEl.innerHTML='';
+  list.forEach(b=>{
+    const card = document.createElement('div'); card.className='card';
+    card.innerHTML = `
+      <div class="cover" style="background-image:url('${b.cover}')"></div>
+      <h3 class="book-title">${b.title}</h3>
+      <div class="author">by ${b.author}</div>
+      <div class="price-row"><strong>${fmt(b.price)}</strong><button class="add" data-id="${b.id}">Add</button></div>
+    `;
+    productsEl.appendChild(card);
+  });
+}
+renderProducts(books);
+
+productsEl.addEventListener('click', e=>{
+  const btn = e.target.closest('button'); if(!btn) return;
+  const id = btn.dataset.id; if(!id) return;
+  const book = books.find(x=>x.id===id);
+  if(!cart[id]) cart[id] = {...book, qty:1}; else cart[id].qty++;
+  renderCart();
+});
+
+function renderCart(){
+  const list = document.getElementById('cart-list');
+  list.innerHTML='';
+  const count = Object.values(cart).reduce((s,i)=>s+i.qty,0);
+  document.getElementById('cart-count').innerText = count;
+  if(count===0){ list.innerHTML = '<div style="color:var(--muted)">Your cart is empty — add some books!</div>'; document.getElementById('checkout-btn').disabled = true; }
+  else{
+    Object.values(cart).forEach(item=>{
+      const el = document.createElement('div'); el.className='cart-item';
+      el.innerHTML = `
+        <div class="thumb" style="background-image:url('${item.cover}')"></div>
+        <div class="ci-meta">
+          <h4>${item.title}</h4>
+          <div class="qty">Qty: ${item.qty}</div>
+          <div>${fmt(item.price*item.qty)}</div>
+          <button class="remove" data-id="${item.id}">Remove</button>
+        </div>
+      `;
+      list.appendChild(el);
+    });
+    document.getElementById('checkout-btn').disabled = false;
+  }
+  const {subtotal,tax,discount,total} = calc();
+  document.getElementById('subtotal').innerText = fmt(subtotal);
+  document.getElementById('tax').innerText = fmt(tax);
+  document.getElementById('discount').innerText = '-'+fmt(discount);
+  document.getElementById('total').innerText = fmt(total);
+}
+
+document.getElementById('cart-list').addEventListener('click', e=>{
+  const id = e.target.dataset.id; if(!id) return;
+  if(e.target.classList.contains('remove')){ delete cart[id]; }
+  renderCart();
+});
+
+// Search functionality
+document.getElementById('search-btn').addEventListener('click', ()=>{
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = books.filter(b=> b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q));
+  renderProducts(filtered);
+});
+
+// Category filter
+document.querySelectorAll('nav a').forEach(a=>{
+  a.addEventListener('click', e=>{
+    e.preventDefault();
+    activeCategory = a.dataset.cat;
+    const filtered = activeCategory==='all' ? books : books.filter(b=>b.cat===activeCategory);
+    renderProducts(filtered);
+  });
+});
+
+// Payment Modal
+function openPayment(){document.getElementById("paymentModal").style.display="flex";}
+function closePayment(){document.getElementById("paymentModal").style.display="none";}
+function confirmOrder(){alert("✅ Order placed successfully! Thank you for shopping."); closePayment();}
+document.getElementById('checkout-btn').addEventListener('click', openPayment);
+</script>
+</body>
+</html
+
